@@ -8,9 +8,8 @@ import numpy as np
 from tqdm import tqdm
 import math
 from rllab.utils import logger
-from rllab import *
+from rllab import lab
 
-layer = fluid.layers
 
 UPDATE_TARGET_STEPS = 200
 
@@ -25,30 +24,32 @@ class Model(object):
         self._build_net()
 
     def _get_inputs(self):
-        return [layer.data(name='state', shape=[self.state_dim], dtype='float32'),
-                layer.data(name='action', shape=[1], dtype='int32'), 
-                layer.data(name='reward', shape=[], dtype='float32'),
-                layer.data(name='next_s', shape=[self.state_dim], dtype='float32'),
-                layer.data(name='isOver', shape=[], dtype='bool')]
+        return [lab.data(name='state', shape=[self.state_dim], dtype='float32'),
+                lab.data(name='action', shape=[1], dtype='int32'), 
+                lab.data(name='reward', shape=[], dtype='float32'),
+                lab.data(name='next_s', shape=[self.state_dim], dtype='float32'),
+                lab.data(name='isOver', shape=[], dtype='bool')]
 
     def _build_net(self):
         state, action, reward, next_s, isOver = self._get_inputs()
-        self.pred_value = self.get_DQN_prediction(state)
+        with lab.variable_scope('policy'):
+            self.pred_value = self.get_DQN_prediction(state)
         self.predict_program = fluid.default_main_program().clone()
 
-        action_onehot = layer.one_hot(action, self.action_dim)
-        action_onehot = layer.cast(action_onehot, dtype='float32')
+        action_onehot = lab.one_hot(action, self.action_dim)
+        action_onehot = lab.cast(action_onehot, dtype='float32')
 
-        pred_action_value = layer.reduce_sum(\
-                            layer.elementwise_mul(action_onehot, self.pred_value), dim=1)
+        pred_action_value = lab.reduce_sum(\
+                            lab.elementwise_mul(action_onehot, self.pred_value), dim=1)
 
-        targetQ_predict_value = self.get_DQN_prediction(next_s, target=True)
-        best_v = layer.reduce_max(targetQ_predict_value, dim=1)
+        with lab.variable_scope('target'):
+            targetQ_predict_value = self.get_DQN_prediction(next_s)
+        best_v = lab.reduce_max(targetQ_predict_value, dim=1)
         best_v.stop_gradient = True
 
-        target = reward + (1.0 - layer.cast(isOver, dtype='float32')) * self.gamma * best_v
-        cost = SquareError(pred_action_value, target)
-        cost = layer.reduce_mean(cost)
+        target = reward + (1.0 - lab.cast(isOver, dtype='float32')) * self.gamma * best_v
+        cost = lab.SquareError(pred_action_value, target)
+        cost = lab.reduce_mean(cost)
 
         self._sync_program = self._build_sync_target_network()
 
@@ -63,12 +64,10 @@ class Model(object):
         self.exe = fluid.Executor(place)
         self.exe.run(fluid.default_startup_program())
 
-    def get_DQN_prediction(self, state, target=False):
-        variable_field = 'target' if target else 'policy'
-
-        fc1 = FullyConnected(variable_field + '/fc1', state, 256, act='relu')
-        fc2 = FullyConnected(variable_field + '/fc2', fc1, 128, act='tanh')
-        value = FullyConnected(variable_field + '/fc3', fc2, self.action_dim)
+    def get_DQN_prediction(self, state):
+        fc1 = lab.FullyConnected('fc1', state, 256, act='relu')
+        fc2 = lab.FullyConnected('fc2', fc1, 128, act='tanh')
+        value = lab.FullyConnected('fc3', fc2, self.action_dim)
 
         return value
 
@@ -84,7 +83,7 @@ class Model(object):
             sync_ops = []
             for i, var in enumerate(policy_vars):
                 logger.info("[assign] policy:{}   target:{}".format(policy_vars[i].name, target_vars[i].name))
-                sync_op = layer.assign(policy_vars[i], target_vars[i])
+                sync_op = lab.assign(policy_vars[i], target_vars[i])
                 sync_ops.append(sync_op)
         sync_program = sync_program.prune(sync_ops)
         return sync_program

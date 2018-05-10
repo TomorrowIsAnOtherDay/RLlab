@@ -9,6 +9,7 @@ import copy
 
 import paddle.fluid as fluid
 from ..pdutils.argscope import get_arg_scope
+from ..pdutils.variable_scope import get_variable_scope
 from ..pdutils.model_utils import get_shape_str
 from ..utils import logger
 
@@ -99,6 +100,9 @@ def layer_register(
 
             # use kwargs from current argument scope
             actual_args = copy.copy(get_arg_scope()[func.__name__])
+            variable_scope = get_variable_scope()
+            if variable_scope is not None:
+                name = '{}/{}'.format(variable_scope, name)
             if use_scope:
                 # explicit kwargs overwrite argscope
                 actual_args.update(kwargs)

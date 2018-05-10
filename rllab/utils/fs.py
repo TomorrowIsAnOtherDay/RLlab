@@ -5,7 +5,7 @@
 import os
 import errno
 import tqdm
-from . import logger
+from rllab.utils import logger
 
 __all__ = ['mkdir_p']
 

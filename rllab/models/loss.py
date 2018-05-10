@@ -4,14 +4,15 @@
 
 
 import paddle.fluid as fluid
-
-from .common import layer_register
-from ..utils import logger
 from paddle.fluid.param_attr import ParamAttr
+from rllab.utils.lab_export import lab_export
+from rllab.models.common import layer_register
+from rllab.utils import logger
 
-__all__ = ['L2Loss', 'SquareError']
+__all__ = ['SquareError']
 
 
+@lab_export('SquareError')
 @layer_register(log_shape=False, use_scope=False)
 def L2Loss(
         input,

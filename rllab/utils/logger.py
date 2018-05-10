@@ -32,7 +32,7 @@ class _MyFormatter(logging.Formatter):
 
 
 def _getlogger():
-    logger = logging.getLogger('Swift')
+    logger = logging.getLogger('RLlab')
     logger.propagate = False
     logger.setLevel(logging.INFO)
     handler = logging.StreamHandler(sys.stdout)

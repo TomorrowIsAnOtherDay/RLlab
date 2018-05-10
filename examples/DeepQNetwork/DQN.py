@@ -10,6 +10,7 @@ from expreplay import ReplayMemory, Experience
 import numpy as np
 import os
 from rllab.utils import logger
+from rllab.utils import Summary
 
 UPDATE_FREQ = 4
 
@@ -56,8 +57,10 @@ def train_agent():
     
     # train
     total_episode = 0
+    summary = Summary()
     pbar = tqdm(total=max_episode)
     recent_100_reward = []
+    logger.info("dir:{}".format(logger.get_logger_dir()))
     for episode in xrange(max_episode):
         # start epoch
         total_reward = run_episode(agent, env, exp, train_or_test='train')
@@ -69,6 +72,7 @@ def train_agent():
         recent_100_reward.append(total_reward)
         if len(recent_100_reward) > 100:
             recent_100_reward = recent_100_reward[1:]
+        summary.log_scalar('test_reward', np.mean(recent_100_reward), episode)
         pbar.write("episode:{}    test_reward:{}".format(\
                     episode, np.mean(recent_100_reward)))
     pbar.close()

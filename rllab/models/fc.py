@@ -4,13 +4,15 @@
 
 import paddle.fluid as fluid
 
-from .common import layer_register, VariableHolder
-from ..utils import logger
+from rllab.models.common import layer_register, VariableHolder
+from rllab.utils import logger
 from paddle.fluid.param_attr import ParamAttr
+from rllab.utils.lab_export import lab_export
 
 __all__ = ['FullyConnected']
 
 
+@lab_export('FullyConnected')
 @layer_register(log_shape=True)
 def FullyConnected(
         input,
